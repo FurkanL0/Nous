@@ -79,6 +79,7 @@
       padding: 10px;
       border-radius: 5px;
       margin: 5px 0;
+      white-space: pre-wrap;
     }
 
     .status {
@@ -112,6 +113,12 @@
       justify-content: space-between;
       gap: 10px;
     }
+
+    .settings-container {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -120,22 +127,32 @@
 
     <h2>Hermes AI Chat</h2>
 
-    <label>API Key:</label>
-    <input type="text" id="apiKeyInput" placeholder="API anahtarınızı girin">
+    <div class="settings-container">
+      <div>
+        <label>API Key:</label>
+        <input type="text" id="apiKeyInput" placeholder="API anahtarınızı girin">
+      </div>
 
-    <label for="modelSelect">Model Seç:</label>
-    <select id="modelSelect">
-      <option value="Hermes-3-Llama-3.1-70B">Hermes-3-Llama-3.1-70B</option>
-      <option value="DeepHermes-3-Llama-3-8B-Preview">DeepHermes-3-Llama-3-8B</option>
-      <option value="DeepHermes-3-Mistral-24B-Preview">DeepHermes-3-Mistral-24B</option>
-      <option value="Hermes-3-Llama-3.1-405B">Hermes-3-Llama-3.1-405B</option>
-    </select>
+      <div>
+        <label for="modelSelect">Model Seç:</label>
+        <select id="modelSelect">
+          <option value="Hermes-3-Llama-3.1-70B">Hermes-3-Llama-3.1-70B</option>
+          <option value="DeepHermes-3-Llama-3-8B-Preview">DeepHermes-3-Llama-3-8B</option>
+          <option value="DeepHermes-3-Mistral-24B-Preview">DeepHermes-3-Mistral-24B</option>
+          <option value="Hermes-3-Llama-3.1-405B">Hermes-3-Llama-3.1-405B</option>
+        </select>
+      </div>
 
-    <label for="maxTokenRange">Max Token Sayısı: <span id="maxTokenValue">256</span></label>
-    <input type="range" id="maxTokenRange" min="64" max="4096" value="256" oninput="updateTokenValue()">
+      <div>
+        <label for="maxTokenRange">Max Token Sayısı: <span id="maxTokenValue">256</span></label>
+        <input type="range" id="maxTokenRange" min="64" max="4096" value="256" oninput="updateTokenValue()">
+      </div>
 
-    <label for="messageInput">Mesajınız:</label>
-    <textarea id="messageInput" rows="4" placeholder="Mesajınızı yazın..."></textarea>
+      <div>
+        <label for="messageInput">Mesajınız:</label>
+        <textarea id="messageInput" rows="4" placeholder="Mesajınızı yazın..."></textarea>
+      </div>
+    </div>
 
     <button onclick="sendMessage()">Gönder</button>
     <div class="utility-buttons">
@@ -210,7 +227,7 @@
 
         const historyBox = document.getElementById("chatHistory");
         historyBox.innerHTML += `<div class="user-message"><strong>Kullanıcı:</strong> ${userMessage}</div>`;
-        historyBox.innerHTML += `<div class="ai-response"><strong>Yanıt:</strong> ${reply}</div>`;
+        historyBox.innerHTML += `<div class="ai-response"><strong>Yanıt (${model}):</strong> <pre><code>${reply}</code></pre></div>`;
         historyBox.scrollTop = historyBox.scrollHeight;
 
         document.getElementById("status").innerText = "";
@@ -222,21 +239,16 @@
     }
 
     function newConversation() {
-      const chatHistory = document.getElementById("chatHistory");
-      const responses = chatHistory.querySelectorAll(".ai-response");
-      chatHistory.innerHTML = "";
-      if (responses.length > 0) {
-        const lastResponse = responses[responses.length - 1];
-        chatHistory.appendChild(lastResponse.cloneNode(true));
-      }
+      document.getElementById("chatHistory").innerHTML = "";
     }
 
     function copyLastResponse() {
-      const responses = document.querySelectorAll(".ai-response");
+      const responses = document.querySelectorAll(".ai-response code");
       if (responses.length === 0) return alert("Henüz yanıt yok.");
-      const lastText = responses[responses.length - 1].innerText.replace("Yanıt:", "").trim();
+      const lastText = responses[responses.length - 1].innerText.trim();
       navigator.clipboard.writeText(lastText).then(() => {
         alert("Yanıt kopyalandı!");
+        document.getElementById("chatHistory").scrollTop = document.getElementById("chatHistory").scrollHeight;
       }).catch(() => {
         alert("Kopyalama başarısız.");
       });
