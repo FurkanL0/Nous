@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hermes AI Chat</title>
+  <style>
+    :root {
+      --bg-color: #0e0e11;
+      --text-color: #e0e0ff;
+      --input-bg: #1a1a1f;
+      --border-color: #2e2e38;
+      --accent-color: #9ab3f5;
+      --button-color: #3e4da0;
+    }
+
+    .light-mode {
+      --bg-color: #f4f4f4;
+      --text-color: #121212;
+      --input-bg: #ffffff;
+      --border-color: #ccc;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    select, textarea, button, input {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+    }
+
+    button {
+      background-color: var(--button-color);
+      color: #fff;
+      border: none;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: var(--accent-color);
+      color: #111;
+    }
+
+    .chat-box {
+      background-color: var(--input-bg);
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .user-message, .ai-response {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 5px 0;
+    }
+
+    .user-message {
+      background-color: #2a2a2f;
+    }
+
+    .ai-response {
+      background-color: #3e4da0;
+      color: #fff;
+    }
+
+    .status {
+      margin-top: 10px;
+      color: orange;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.9em;
+    }
+
+    .footer a {
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+
+    .mode-toggle {
+      cursor: pointer;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #444;
+      border: none;
+      color: white;
+      border-radius: 5px;
+    }
+
+    .utility-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="mode-toggle" onclick="toggleTheme()">🌙 Gece / ☀️ Gündüz Modu</button>
+
+    <h2>Hermes AI Chat</h2>
+
+    <label>API Key:</label>
+    <input type="text" id="apiKeyInput" placeholder="API anahtarınızı girin">
+
+    <label for="modelSelect">Model Seç:</label>
+    <select id="modelSelect">
+      <option value="Hermes-3-Llama-3.1-70B">Hermes-3-Llama-3.1-70B</option>
+      <option value="DeepHermes-3-Llama-3-8B-Preview">DeepHermes-3-Llama-3-8B</option>
+      <option value="DeepHermes-3-Mistral-24B-Preview">DeepHermes-3-Mistral-24B</option>
+      <option value="Hermes-3-Llama-3.1-405B">Hermes-3-Llama-3.1-405B</option>
+    </select>
+
+    <label for="maxTokenRange">Max Token Sayısı: <span id="maxTokenValue">256</span></label>
+    <input type="range" id="maxTokenRange" min="64" max="4096" value="256" oninput="updateTokenValue()">
+
+    <label for="intervalInput">Soru Aralığı (saniye):</label>
+    <input type="number" id="intervalInput" min="1" value="5">
+
+    <div class="utility-buttons">
+      <button onclick="startQuiz()">▶️ Başlat</button>
+      <button onclick="stopQuiz()">⏹️ Durdur</button>
+      <button onclick="resumeQuiz()">⏯️ Devam Et</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div class="chat-box" id="chatHistory"></div>
+
+    <div class="footer">
+      Powered by <a href="https://x.com/FurkanL0eth" target="_blank">FurkanL0</a> & <a href="https://x.com/KriptoUzmaniTW" target="_blank">Kripto Uzmani</a>
+    </div>
+  </div>
+
+  <script>
+    const prompts = {
+      "Hermes-3-Llama-3.1-70B": "You are Hermes...",
+      "DeepHermes-3-Llama-3-8B-Preview": "You are a deep thinking AI...",
+      "DeepHermes-3-Mistral-24B-Preview": "You are a deep thinking AI...",
+      "Hermes-3-Llama-3.1-405B": "You are Hermes 3..."
+    };
+
+    const questionList = [
+  // Türkçe
+  "Kripto paraların geleceği nedir ve dünya ekonomisi üzerindeki potansiyel etkileri nelerdir?",
+  "Validatörlük nedir, nasıl olunur ve bu süreçte karşılaşılan teknik zorluklar nelerdir?",
+  "Ethereum'un geçirdiği tarihsel güncellemeler nelerdir ve bu güncellemelerin sektöre katkısı nedir?",
+  "Kripto para borsalarının regülasyon karşısındaki tutumu ve gelecek vizyonu hakkında ne düşünüyorsun?",
+  "Layer 1 ve Layer 2 çözümleri arasındaki farklar nelerdir? Hangi projeler bu alanda öncü?",
+  "Blockchain konsensüs mekanizmaları nasıl çalışır ve merkeziyetsiz ağlarda güvenliği nasıl sağlar?",
+  "Uzun vadeli yatırımcılar için kripto paraya yatırım yapmanın riskleri ve ödülleri nelerdir?",
+  "Merkeziyetsiz finans (DeFi) kavramını açıklayın ve geleneksel bankacılık sistemi üzerindeki potansiyel etkilerini tartışın.",
+  "Proof of Work ile Proof of Stake arasındaki farklar nedir ve blockchain teknolojisini nasıl etkiler?",
+  "AI, kripto para fiyat hareketlerini tahmin etmek için nasıl kullanılır ve genellikle hangi algoritmalar kullanılır?",
+  "Finans ve ticarette AI kullanımının etik sonuçları nelerdir ve bu sorunlar nasıl azaltılabilir?",
+  "Oracellerin akıllı sözleşmelerdeki rolünü açıklayın ve blockchain uygulamalarının dış verilerle nasıl etkileşime girmesini sağlar?",
+  "Tokenomics kavramını açıklayın ve kripto para projelerinin tasarımında neden önemlidir?",
+  
+  // English
+  "What is the future of cryptocurrencies and their potential impact on the global economy?",
+  "What is validation, how does one become a validator, and what technical challenges are faced in this process?",
+  "What are the historical updates of Ethereum and how do these updates contribute to the industry?",
+  "What is the stance of cryptocurrency exchanges on regulations and what is their vision for the future?",
+  "What are the differences between Layer 1 and Layer 2 solutions? Which projects are pioneers in this field?",
+  "How do blockchain consensus mechanisms work and how do they ensure security in decentralized networks?",
+  "What are the risks and rewards of investing in cryptocurrencies for long-term investors?",
+  "Explain the concept of decentralized finance (DeFi) and discuss its potential impact on traditional banking systems.",
+  "What are the differences between Proof of Work and Proof of Stake and how do they affect blockchain technology?",
+  "How is AI used to predict cryptocurrency price movements and what algorithms are typically used?",
+  "What are the ethical implications of AI usage in finance and trade, and how can these issues be mitigated?",
+  "Explain the role of oracles in smart contracts and how blockchain applications interact with external data.",
+  "What is tokenomics and why is it important in the design of cryptocurrency projects?",
+
+  // Deutsch
+  "Was ist die Zukunft von Kryptowährungen und ihre potenziellen Auswirkungen auf die globale Wirtschaft?",
+  "Was ist Validierung, wie wird man ein Validator, und welche technischen Herausforderungen treten in diesem Prozess auf?",
+  "Welche historischen Updates hat Ethereum durchlaufen und wie tragen diese Updates zur Branche bei?",
+  "Wie ist die Haltung von Kryptowährungsbörsen gegenüber Regulierung und was ist ihre Vision für die Zukunft?",
+  "Was sind die Unterschiede zwischen Layer-1- und Layer-2-Lösungen? Welche Projekte sind in diesem Bereich führend?",
+  "Wie funktionieren Blockchain-Konsensmechanismen und wie gewährleisten sie die Sicherheit in dezentralen Netzwerken?",
+  "Was sind die Risiken und Belohnungen einer langfristigen Investition in Kryptowährungen?",
+  "Erklären Sie das Konzept der dezentralisierten Finanzen (DeFi) und diskutieren Sie deren potenzielle Auswirkungen auf traditionelle Bankensysteme.",
+  "Was sind die Unterschiede zwischen Proof of Work und Proof of Stake und wie beeinflussen sie die Blockchain-Technologie?",
+  "Wie wird KI genutzt, um Preisbewegungen von Kryptowährungen vorherzusagen und welche Algorithmen werden dabei üblicherweise verwendet?",
+  "Was sind die ethischen Implikationen der Verwendung von KI im Finanzwesen und Handel, und wie können diese Probleme verringert werden?",
+  "Erklären Sie die Rolle von Oracles in Smart Contracts und wie Blockchain-Anwendungen mit externen Daten interagieren.",
+  "Was ist Tokenomics und warum ist es wichtig für das Design von Kryptowährungsprojekten?",
+
+  // Français
+  "Quel est l'avenir des cryptomonnaies et leur impact potentiel sur l'économie mondiale?",
+  "Qu'est-ce que la validation, comment devenir validateur, et quels sont les défis techniques rencontrés dans ce processus?",
+  "Quelles sont les mises à jour historiques d'Ethereum et comment ces mises à jour contribuent-elles à l'industrie?",
+  "Quelle est la position des bourses de cryptomonnaies vis-à-vis des régulations et quelle est leur vision pour l'avenir?",
+  "Quelles sont les différences entre les solutions Layer 1 et Layer 2 ? Quels projets sont des pionniers dans ce domaine?",
+  "Comment fonctionnent les mécanismes de consensus de la blockchain et comment assurent-ils la sécurité dans les réseaux décentralisés?",
+  "Quels sont les risques et les avantages d'investir dans les cryptomonnaies pour les investisseurs à long terme?",
+  "Expliquez le concept de la finance décentralisée (DeFi) et discutez de son impact potentiel sur les systèmes bancaires traditionnels.",
+  "Quelles sont les différences entre Proof of Work et Proof of Stake et comment influencent-elles la technologie blockchain?",
+  "Comment l'IA est-elle utilisée pour prédire les mouvements de prix des cryptomonnaies et quels algorithmes sont généralement utilisés?",
+  "Quelles sont les implications éthiques de l'utilisation de l'IA dans la finance et le commerce, et comment ces problèmes peuvent-ils être atténués?",
+  "Expliquez le rôle des oracles dans les contrats intelligents et comment les applications blockchain interagissent avec des données externes.",
+  "Qu'est-ce que la tokenomics et pourquoi est-ce important dans la conception des projets de cryptomonnaies?",
+
+  // More Questions to complete 300 (to continue the pattern for all four languages)
+
+  // Turkish - Continue
+  "NFT nedir ve dijital sanat dünyasındaki rolü nedir?",
+  "Kripto paraların çevresel etkileri hakkında ne düşünüyorsunuz? Çözüm önerileriniz nelerdir?",
+  "Smart contract'lar ve Ethereum'un akıllı sözleşme platformu arasındaki ilişkiyi açıklar mısınız?",
+  "Kripto para madenciliğinin geleceği nasıl şekillenecek? Proof of Work ve alternatifleri hakkında görüşleriniz nedir?",
+  "Hangi kripto para projeleri güvenlik açısından en iyilerdir ve bunların arkasındaki teknolojiler nelerdir?",
+
+  // English - Continue
+  "What are NFTs and what role do they play in the digital art world?",
+  "What do you think about the environmental impacts of cryptocurrencies? What are your solutions?",
+  "Can you explain the relationship between smart contracts and Ethereum's smart contract platform?",
+  "What is the future of cryptocurrency mining? What are your views on Proof of Work and its alternatives?",
+  "Which cryptocurrency projects are considered the most secure and what technologies are behind them?",
+
+  // Deutsch - Continue
+  "Was sind NFTs und welche Rolle spielen sie in der digitalen Kunstwelt?",
+  "Was denken Sie über die Umweltwirkungen von Kryptowährungen? Was sind Ihre Lösungen?",
+  "Können Sie die Beziehung zwischen Smart Contracts und der Ethereum Smart-Contract-Plattform erklären?",
+  "Wie wird sich die Zukunft des Kryptowährungsmarktes entwickeln? Was sind Ihre Gedanken zu Proof of Work und seinen Alternativen?",
+  "Welche Kryptowährungsprojekte gelten als die sichersten und welche Technologien stecken dahinter?",
+
+  // Français - Continue
+  "Que sont les NFTs et quel rôle jouent-ils dans le monde de l'art numérique?",
+  "Que pensez-vous des impacts environnementaux des cryptomonnaies ? Quelles sont vos solutions ?",
+  "Pouvez-vous expliquer la relation entre les contrats intelligents et la plateforme de contrats intelligents Ethereum ?",
+  "Quel est l'avenir du marché des cryptomonnaies ? Quelles sont vos pensées sur le Proof of Work et ses alternatives ?",
+  "Quels projets de cryptomonnaie sont considérés comme les plus sécurisés et quelles technologies les soutiennent ?"
+];
+
+
+    let currentIndex = 0;
+    let intervalId = null;
+    let running = false;
+
+    function toggleTheme() {
+      document.body.classList.toggle("light-mode");
+    }
+
+    function updateTokenValue() {
+      document.getElementById("maxTokenValue").innerText = document.getElementById("maxTokenRange").value;
+    }
+
+    async function sendAIMessage(message) {
+      const model = document.getElementById("modelSelect").value;
+      const apiKey = document.getElementById("apiKeyInput").value.trim();
+      const maxTokens = parseInt(document.getElementById("maxTokenRange").value);
+      const systemPrompt = prompts[model];
+
+      if (!apiKey) return alert("API key eksik.");
+
+      document.getElementById("status").innerText = "Yanıt bekleniyor...";
+
+      try {
+        const response = await fetch("https://inference-api.nousresearch.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: message }
+            ],
+            max_tokens: maxTokens
+          })
+        });
+
+        const result = await response.json();
+        const reply = result.choices?.[0]?.message?.content || "Yanıt alınamadı.";
+
+        const chat = document.getElementById("chatHistory");
+        chat.innerHTML += `<div class='user-message'><strong>Soru:</strong> ${message}</div>`;
+        chat.innerHTML += `<div class='ai-response'><strong>Yanıt (${model}):</strong><br><pre style='white-space:pre-wrap'>${reply}</pre></div>`;
+        chat.scrollTop = chat.scrollHeight;
+        document.getElementById("status").innerText = "";
+      } catch (err) {
+        document.getElementById("status").innerText = "API hatası";
+      }
+    }
+
+    function startQuiz() {
+      if (running) return;
+      currentIndex = 0;
+      document.getElementById("chatHistory").innerHTML = "";
+      running = true;
+      askNextQuestion();
+    }
+
+    function askNextQuestion() {
+      if (!running || currentIndex >= questionList.length) return;
+
+      const question = questionList[currentIndex++];
+      sendAIMessage(question).then(() => {
+        const interval = parseInt(document.getElementById("intervalInput").value) * 1000;
+        intervalId = setTimeout(askNextQuestion, interval);
+      });
+    }
+
+    function stopQuiz() {
+      running = false;
+      clearTimeout(intervalId);
+    }
+
+    function resumeQuiz() {
+      if (!running && currentIndex < questionList.length) {
+        running = true;
+        askNextQuestion();
+      }
+    }
+  </script>
+</body>
+</html>
